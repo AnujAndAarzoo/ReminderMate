@@ -107,6 +107,7 @@ fun ReminderScreen(vm: ReminderViewModel) {
             "Overdue" -> !item.completed && item.dueAt < now && item.snoozedUntil <= now
             "Completed" -> item.completed
             "Snoozed" -> !item.completed && item.snoozedUntil > now
+            "High", "Medium", "Low" -> !item.completed && item.priority == filter
             "Personal", "Professional" -> !item.completed && item.category == filter
             else -> !item.completed
         }
@@ -140,6 +141,12 @@ fun ReminderScreen(vm: ReminderViewModel) {
             }
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Priority:", modifier = Modifier.align(Alignment.CenterVertically), style = MaterialTheme.typography.labelMedium)
+                listOf("High", "Medium", "Low").forEach { f ->
+                    FilterChip(selected = filter == f, onClick = { filter = f }, label = { Text(f) })
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("Personal", "Professional").forEach { f -> FilterChip(selected = filter == f, onClick = { filter = f }, label = { Text(f) }) }
             }
             Spacer(Modifier.height(8.dp))
@@ -153,7 +160,7 @@ fun ReminderScreen(vm: ReminderViewModel) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
                                         Text(item.title, style = MaterialTheme.typography.titleMedium)
-                                        Text("${item.category}  •  ${item.priority} priority", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                                        Text("${item.category}  •  ${item.priority} PRIORITY", style = MaterialTheme.typography.labelLarge, color = when (item.priority) { "High" -> MaterialTheme.colorScheme.error; "Medium" -> MaterialTheme.colorScheme.tertiary; else -> MaterialTheme.colorScheme.secondary })
                                     }
                                     if (!item.completed) IconButton(onClick = { editing = item; showAdd = true }) { Icon(Icons.Default.Edit, "Edit") }
                                     IconButton(onClick = { vm.remove(item) }) { Icon(Icons.Default.Delete, "Delete") }
