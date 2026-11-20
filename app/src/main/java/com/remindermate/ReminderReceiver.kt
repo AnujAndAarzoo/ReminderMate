@@ -54,7 +54,7 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     private fun showNotification(context: Context, id: Long, title: String, notes: String) {
-        val channelId = "activity_reminders_v3"
+        val channelId = "activity_reminders_v4"
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, "Reminder alerts", NotificationManager.IMPORTANCE_HIGH).apply {
@@ -92,18 +92,20 @@ class ReminderReceiver : BroadcastReceiver() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            // Swipe dismissal removes only the notification; it does not complete the reminder.
             .setAutoCancel(true)
             .setOngoing(false)
-            .setDefaults(NotificationCompat.DEFAULT_ALL)
-            .setVibrate(longArrayOf(0, 500, 250, 500, 250, 700))
-            .setLights(android.graphics.Color.CYAN, 1000, 1000)
+            .setOnlyAlertOnce(false)
+            .setShowWhen(true)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
             .setContentIntent(open)
             .addAction(0, "Snooze 10 min", actionPending(ACTION_SNOOZE, id.toInt() + 100000, 10 * 60 * 1000L))
             .addAction(0, "Snooze 1 hour", actionPending(ACTION_SNOOZE, id.toInt() + 200000, 60 * 60 * 1000L))
             .addAction(0, "Mark done", actionPending(ACTION_DONE, id.toInt() + 300000))
             .build()
+        // Channel v4 owns sound, vibration and notification-light behavior.
+        // Android 14+ blocks reliable camera-torch access from a background receiver.
         manager.notify(id.toInt(), notification)
-        FlashAlert.blink(context)
     }
 
     private fun nextOccurrence(dueAt: Long, repeat: String): Long? {
