@@ -12,5 +12,6 @@ data class Reminder(
     val priority: String = "Medium",
     val dueAt: Long,
     val repeat: String = "Never",
-    val completed: Boolean = false
+    val completed: Boolean = false,
+    val snoozedUntil: Long = 0L
 )
