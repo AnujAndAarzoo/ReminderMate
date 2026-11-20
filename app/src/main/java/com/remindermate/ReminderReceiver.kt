@@ -69,7 +69,7 @@ class ReminderReceiver : BroadcastReceiver() {
             }
             manager.createNotificationChannel(channel)
         }
-        val openIntent = Intent(context, MainActivity::class.java).apply {
+        val openIntent = Intent(context, ReminderDetailActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra(MainActivity.EXTRA_OPEN_REMINDER_ID, id)
         }
