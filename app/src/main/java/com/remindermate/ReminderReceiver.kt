@@ -13,72 +13,107 @@ import com.remindermate.data.ReminderDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val reminderId = intent.getLongExtra("reminder_id", -1L)
-        if (reminderId <= 0L) return
-
-        val pendingResult = goAsync()
+        val id = intent.getLongExtra("reminder_id", -1L)
+        if (id <= 0L) return
+        val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val reminder = ReminderDatabase.get(context).reminderDao().getById(reminderId)
-                    ?: return@launch
-                // A completed or deleted activity must never generate another alert.
+                val dao = ReminderDatabase.get(context).reminderDao()
+                val reminder = dao.getById(id) ?: return@launch
                 if (reminder.completed) return@launch
 
-                val channelId = "activity_reminders"
-                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    manager.createNotificationChannel(
-                        NotificationChannel(
-                            channelId,
-                            "Activity reminders",
-                            NotificationManager.IMPORTANCE_HIGH
-                        )
-                    )
+                when (intent.action) {
+                    ACTION_DONE -> {
+                        dao.update(reminder.copy(completed = true, snoozedUntil = 0L))
+                        ReminderScheduler.cancel(context, id)
+                        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(id.toInt())
+                        return@launch
+                    }
+                    ACTION_SNOOZE -> {
+                        val delay = intent.getLongExtra(EXTRA_DELAY, 10 * 60 * 1000L)
+                        val until = System.currentTimeMillis() + delay.coerceAtLeast(60_000L)
+                        val updated = reminder.copy(snoozedUntil = until)
+                        dao.update(updated)
+                        ReminderScheduler.schedule(context, updated)
+                        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(id.toInt())
+                        return@launch
+                    }
                 }
-                val openApp = PendingIntent.getActivity(
-                    context, 0, Intent(context, MainActivity::class.java),
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                val notification = NotificationCompat.Builder(context, channelId)
-                    .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                    .setContentTitle(reminder.title)
-                    .setContentText(reminder.notes.ifBlank { "This activity is still pending." })
-                    .setStyle(NotificationCompat.BigTextStyle().bigText(
-                        reminder.notes.ifBlank { "This activity is still pending. Mark it completed in ReminderMate to stop repeat alerts." }
-                    ))
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setAutoCancel(true)
-                    .setContentIntent(openApp)
-                    .build()
-                manager.notify(reminderId.toInt(), notification)
 
-                // Repeat every 30 minutes until the user marks this activity completed.
-                scheduleFollowUp(context, reminderId, 30 * 60 * 1000L)
+                // If this was a snoozed alarm, clear the snooze marker before showing it.
+                if (reminder.snoozedUntil > 0L) dao.update(reminder.copy(snoozedUntil = 0L))
+                showNotification(context, reminder.id, reminder.title, reminder.notes)
+
+                // Recurring reminders advance to their next calendar occurrence.
+                val next = nextOccurrence(reminder.dueAt, reminder.repeat)
+                if (next != null) {
+                    val updated = reminder.copy(dueAt = next, snoozedUntil = 0L)
+                    dao.update(updated)
+                    ReminderScheduler.schedule(context, updated)
+                }
             } finally {
-                pendingResult.finish()
+                pending.finish()
             }
         }
     }
 
-    private fun scheduleFollowUp(context: Context, reminderId: Long, delayMs: Long) {
-        val nextIntent = Intent(context, ReminderReceiver::class.java).apply {
-            putExtra("reminder_id", reminderId)
+    private fun showNotification(context: Context, id: Long, title: String, notes: String) {
+        val channelId = "activity_reminders"
+        val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            manager.createNotificationChannel(
+                NotificationChannel(channelId, "Activity reminders", NotificationManager.IMPORTANCE_HIGH)
+            )
         }
-        val pending = PendingIntent.getBroadcast(
-            context,
-            reminderId.toInt(),
-            nextIntent,
+        val open = PendingIntent.getActivity(
+            context, id.toInt(), Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val triggerAt = System.currentTimeMillis() + delayMs
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && alarm.canScheduleExactAlarms()) {
-            alarm.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pending)
-        } else {
-            alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pending)
+        fun actionPending(action: String, request: Int, delay: Long = 0L): PendingIntent {
+            val actionIntent = Intent(context, ReminderReceiver::class.java).apply {
+                this.action = action
+                putExtra("reminder_id", id)
+                putExtra(EXTRA_DELAY, delay)
+            }
+            return PendingIntent.getBroadcast(
+                context, request, actionIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
         }
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentTitle(title)
+            .setContentText(notes.ifBlank { "This activity is due now." })
+            .setStyle(NotificationCompat.BigTextStyle().bigText(notes.ifBlank { "This activity is due now." }))
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(open)
+            .addAction(0, "Snooze 10 min", actionPending(ACTION_SNOOZE, id.toInt() + 100000, 10 * 60 * 1000L))
+            .addAction(0, "Snooze 1 hour", actionPending(ACTION_SNOOZE, id.toInt() + 200000, 60 * 60 * 1000L))
+            .addAction(0, "Mark done", actionPending(ACTION_DONE, id.toInt() + 300000))
+            .build()
+        manager.notify(id.toInt(), notification)
+    }
+
+    private fun nextOccurrence(dueAt: Long, repeat: String): Long? {
+        val field = when (repeat) {
+            "Daily" -> Calendar.DAY_OF_YEAR
+            "Weekly" -> Calendar.WEEK_OF_YEAR
+            "Monthly" -> Calendar.MONTH
+            else -> return null
+        }
+        val calendar = Calendar.getInstance().apply { timeInMillis = dueAt }
+        do { calendar.add(field, 1) } while (calendar.timeInMillis <= System.currentTimeMillis())
+        return calendar.timeInMillis
+    }
+
+    companion object {
+        const val ACTION_DONE = "com.remindermate.ACTION_DONE"
+        const val ACTION_SNOOZE = "com.remindermate.ACTION_SNOOZE"
+        const val EXTRA_DELAY = "snooze_delay"
     }
 }
