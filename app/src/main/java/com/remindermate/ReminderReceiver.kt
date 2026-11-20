@@ -54,7 +54,7 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     private fun showNotification(context: Context, id: Long, title: String, notes: String) {
-        val channelId = "activity_reminders_v2"
+        val channelId = "activity_reminders_v3"
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(channelId, "Reminder alerts", NotificationManager.IMPORTANCE_HIGH).apply {
@@ -93,6 +93,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setAutoCancel(true)
+            .setOngoing(false)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVibrate(longArrayOf(0, 500, 250, 500, 250, 700))
             .setLights(android.graphics.Color.CYAN, 1000, 1000)
@@ -102,6 +103,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .addAction(0, "Mark done", actionPending(ACTION_DONE, id.toInt() + 300000))
             .build()
         manager.notify(id.toInt(), notification)
+        FlashAlert.blink(context)
     }
 
     private fun nextOccurrence(dueAt: Long, repeat: String): Long? {
