@@ -39,9 +39,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    private val cameraPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) {}
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= 33) permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        if (checkSelfPermission(Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
         val dao = ReminderDatabase.get(this).reminderDao()
         setContent {
             val vm: ReminderViewModel = viewModel(factory = ReminderViewModel.Factory(dao, this))
@@ -103,9 +105,10 @@ fun ReminderScreen(vm: ReminderViewModel) {
             else -> !item.completed
         }
         matches && status
-    }
+    }.sortedWith(compareBy<Reminder> { when (it.priority) { "High" -> 0; "Medium" -> 1; else -> 2 } }.thenBy { it.dueAt })
     val pending = reminders.count { !it.completed }
     val overdue = reminders.count { !it.completed && it.dueAt < now && it.snoozedUntil <= now }
+    val highPriority = reminders.count { !it.completed && it.priority == "High" }
     Scaffold(
         topBar = { TopAppBar(title = { Column { Text("ReminderMate"); Text("Built by Anuj Awasthi", style = MaterialTheme.typography.labelSmall) } }) },
         floatingActionButton = { FloatingActionButton(onClick = { editing = null; showAdd = true }) { Icon(Icons.Default.Add, "Add activity") } }
@@ -116,6 +119,7 @@ fun ReminderScreen(vm: ReminderViewModel) {
                 Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column { Text("Your day at a glance", style = MaterialTheme.typography.titleMedium); Text("$pending active activities") }
                     Column(horizontalAlignment = Alignment.End) { Text("$overdue", style = MaterialTheme.typography.headlineMedium); Text("Overdue") }
+                    Column(horizontalAlignment = Alignment.End) { Text("$highPriority", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.error); Text("High priority") }
                 }
             }
             Spacer(Modifier.height(12.dp))
