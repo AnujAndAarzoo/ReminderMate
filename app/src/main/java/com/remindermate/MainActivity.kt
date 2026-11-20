@@ -43,7 +43,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        if (checkSelfPermission(Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        if (checkSelfPermission(Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            val prefs = getSharedPreferences("remindermate_settings", MODE_PRIVATE)
+            if (!prefs.getBoolean("camera_permission_asked", false)) {
+                prefs.edit().putBoolean("camera_permission_asked", true).apply()
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            }
+        }
         val dao = ReminderDatabase.get(this).reminderDao()
         setContent {
             val vm: ReminderViewModel = viewModel(factory = ReminderViewModel.Factory(dao, this))
