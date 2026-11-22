@@ -252,4 +252,19 @@ fun AddReminderDialog(initial: Reminder? = null, onDismiss: () -> Unit, onSave: 
 }
 
 
-internal fun reminderMateColorScheme() = lightColorScheme(\n    primary = androidx.compose.ui.graphics.Color(0xFF176B67),\n    onPrimary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),\n    primaryContainer = androidx.compose.ui.graphics.Color(0xFFD7F1EC),\n    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF073D39),\n    secondary = androidx.compose.ui.graphics.Color(0xFF66558F),\n    onSecondary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),\n    tertiary = androidx.compose.ui.graphics.Color(0xFFB65F36),\n    background = androidx.compose.ui.graphics.Color(0xFFF6F8F6),\n    surface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),\n    surfaceVariant = androidx.compose.ui.graphics.Color(0xFFE8EFEC),\n    onSurface = androidx.compose.ui.graphics.Color(0xFF172522),\n    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF53635E),\n    error = androidx.compose.ui.graphics.Color(0xFFBA1A1A),\n    outline = androidx.compose.ui.graphics.Color(0xFF7A8B85)\n)\n
+internal fun reminderMateColorScheme() = lightColorScheme(
+    primary = androidx.compose.ui.graphics.Color(0xFF176B67),
+    onPrimary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+    primaryContainer = androidx.compose.ui.graphics.Color(0xFFD7F1EC),
+    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF073D39),
+    secondary = androidx.compose.ui.graphics.Color(0xFF66558F),
+    onSecondary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+    tertiary = androidx.compose.ui.graphics.Color(0xFFB65F36),
+    background = androidx.compose.ui.graphics.Color(0xFFF6F8F6),
+    surface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+    surfaceVariant = androidx.compose.ui.graphics.Color(0xFFE8EFEC),
+    onSurface = androidx.compose.ui.graphics.Color(0xFF172522),
+    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF53635E),
+    error = androidx.compose.ui.graphics.Color(0xFFBA1A1A),
+    outline = androidx.compose.ui.graphics.Color(0xFF7A8B85)
+)
