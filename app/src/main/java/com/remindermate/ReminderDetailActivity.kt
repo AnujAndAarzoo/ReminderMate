@@ -34,7 +34,7 @@ class ReminderDetailActivity : ComponentActivity() {
                 reminder = withContext(Dispatchers.IO) { dao.getById(reminderId) }
                 loading = false
             }
-            MaterialTheme(colorScheme = lightColorScheme(primary = androidx.compose.ui.graphics.Color(0xFF3157A5))) {
+            MaterialTheme(colorScheme = reminderMateColorScheme()) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
                     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text("REMINDERMATE", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
