@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
         val dao = ReminderDatabase.get(this).reminderDao()
         setContent {
             val vm: ReminderViewModel = viewModel(factory = ReminderViewModel.Factory(dao, this))
-            MaterialTheme(colorScheme = lightColorScheme(primary = androidx.compose.ui.graphics.Color(0xFF3157A5), secondary = androidx.compose.ui.graphics.Color(0xFF5276BC))) {
+            MaterialTheme(colorScheme = reminderMateColorScheme()) {
                 ReminderScreen(vm)
             }
         }
@@ -117,7 +117,7 @@ fun ReminderScreen(vm: ReminderViewModel) {
     val overdue = reminders.count { !it.completed && it.dueAt < now && it.snoozedUntil <= now }
     val highPriority = reminders.count { !it.completed && it.priority == "High" }
     Scaffold(
-        topBar = { TopAppBar(title = { Column { Text("ReminderMate"); Text("Built by Anuj Awasthi", style = MaterialTheme.typography.labelSmall) } }) },
+        topBar = { TopAppBar(navigationIcon = { Surface(shape = androidx.compose.foundation.shape.CircleShape, color = MaterialTheme.colorScheme.primaryContainer) { Icon(Icons.Default.Alarm, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(9.dp).size(24.dp)) } }, title = { Column { Text("ReminderMate", style = MaterialTheme.typography.titleLarge); Text("A little more organised, every day", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
         floatingActionButton = { FloatingActionButton(onClick = { editing = null; showAdd = true }) { Icon(Icons.Default.Add, "Add activity") } }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp)) {
@@ -249,3 +249,6 @@ fun AddReminderDialog(initial: Reminder? = null, onDismiss: () -> Unit, onSave: 
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
+
+
+internal fun reminderMateColorScheme() = lightColorScheme(\n    primary = androidx.compose.ui.graphics.Color(0xFF176B67),\n    onPrimary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),\n    primaryContainer = androidx.compose.ui.graphics.Color(0xFFD7F1EC),\n    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF073D39),\n    secondary = androidx.compose.ui.graphics.Color(0xFF66558F),\n    onSecondary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),\n    tertiary = androidx.compose.ui.graphics.Color(0xFFB65F36),\n    background = androidx.compose.ui.graphics.Color(0xFFF6F8F6),\n    surface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),\n    surfaceVariant = androidx.compose.ui.graphics.Color(0xFFE8EFEC),\n    onSurface = androidx.compose.ui.graphics.Color(0xFF172522),\n    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF53635E),\n    error = androidx.compose.ui.graphics.Color(0xFFBA1A1A),\n    outline = androidx.compose.ui.graphics.Color(0xFF7A8B85)\n)\n
