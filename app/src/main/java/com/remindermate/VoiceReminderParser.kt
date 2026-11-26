@@ -9,6 +9,7 @@ data class ParsedVoiceReminder(
     val category: String,
     val priority: String,
     val dueAt: Long?,
+    val dateAtStartOfDay: Long?,
     val notificationLeadMinutes: Int,
     val repeat: String,
     val timeNeedsConfirmation: Boolean
@@ -24,6 +25,8 @@ object VoiceReminderParser {
         val lower = text.lowercase(Locale.ROOT)
         val calendar = Calendar.getInstance().apply { timeInMillis = now }
         val dateFound = applyDate(calendar, lower, now)
+        val dateOnlyCalendar = (calendar.clone() as Calendar).apply { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
+        val dateAtStartOfDay = if (dateFound) dateOnlyCalendar.timeInMillis else null
         val time = parseTime(text, lower)
         var timeNeedsConfirmation = time?.ambiguous == true
 
@@ -86,6 +89,7 @@ object VoiceReminderParser {
             category = category,
             priority = priority,
             dueAt = dueAt,
+            dateAtStartOfDay = dateAtStartOfDay,
             notificationLeadMinutes = lead,
             repeat = repeat,
             timeNeedsConfirmation = timeNeedsConfirmation
