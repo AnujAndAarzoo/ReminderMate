@@ -66,6 +66,7 @@ private data class VoiceReminderDraft(
     val notificationLeadMinutes: Int
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
     val context = LocalContext.current
