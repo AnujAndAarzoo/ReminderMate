@@ -224,6 +224,8 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
                             TimePickerDialog(context, { _, hour, minute ->
                                 chosen.set(Calendar.HOUR_OF_DAY, hour); chosen.set(Calendar.MINUTE, minute); chosen.set(Calendar.SECOND, 0); chosen.set(Calendar.MILLISECOND, 0)
                                 dueAt = chosen.timeInMillis
+                                suggestedDate = null
+                                timeNeedsConfirmation = false
                             }, initial.get(Calendar.HOUR_OF_DAY), initial.get(Calendar.MINUTE), false).show()
                         }, initial.get(Calendar.YEAR), initial.get(Calendar.MONTH), initial.get(Calendar.DAY_OF_MONTH)).show()
                     },
