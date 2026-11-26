@@ -57,15 +57,6 @@ class VoiceAssistantActivity : ComponentActivity() {
     }
 }
 
-private data class VoiceReminderDraft(
-    val spokenText: String,
-    val title: String,
-    val category: String,
-    val priority: String,
-    val dueAt: Long?,
-    val notificationLeadMinutes: Int
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
@@ -77,10 +68,14 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
     var processing by remember { mutableStateOf(false) }
     var spokenText by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Personal") }
     var priority by remember { mutableStateOf("Medium") }
+    var repeat by remember { mutableStateOf("Never") }
     var dueAt by remember { mutableStateOf<Long?>(null) }
+    var suggestedDate by remember { mutableStateOf<Long?>(null) }
     var leadMinutes by remember { mutableIntStateOf(0) }
+    var timeNeedsConfirmation by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("Choose a language and speak your reminder.") }
     var showConfirmation by remember { mutableStateOf(false) }
     var saving by remember { mutableStateOf(false) }
@@ -88,15 +83,24 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
 
     fun applyRecognizedText(text: String) {
         spokenText = text
-        val draft = parseVoiceReminder(text, language)
+        val draft = VoiceReminderParser.parse(text, language)
         title = draft.title
+        notes = draft.notes
         category = draft.category
         priority = draft.priority
+        repeat = draft.repeat
         dueAt = draft.dueAt
+        suggestedDate = draft.dateAtStartOfDay
         leadMinutes = draft.notificationLeadMinutes
+        timeNeedsConfirmation = draft.timeNeedsConfirmation
         processing = false
         showConfirmation = true
-        status = if (draft.dueAt == null) "Please choose the reminder date and time." else "Review every detail before saving."
+        status = when {
+            draft.dueAt == null && draft.dateAtStartOfDay != null -> "Date captured. Please choose or confirm the time."
+            draft.dueAt == null -> "Date or time not recognized. Please complete both before saving."
+            draft.timeNeedsConfirmation -> "Time captured, but AM/PM is ambiguous. Please verify it below."
+            else -> "All details extracted. Review before saving."
+        }
     }
 
     DisposableEffect(Unit) {
@@ -195,6 +199,7 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
                 HorizontalDivider()
                 Text("Review reminder", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 OutlinedTextField(title, { title = it }, label = { Text("Activity title *") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(notes, { notes = it }, label = { Text("Notes (optional)") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 Text("Category")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(category == "Personal", { category = "Personal" }, label = { Text("Personal") })
@@ -204,12 +209,16 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("Low", "Medium", "High").forEach { p -> FilterChip(priority == p, { priority = p }, label = { Text(p) }) }
                 }
+                Text("Repeat")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Never", "Daily", "Weekly", "Monthly").forEach { value -> FilterChip(repeat == value, { repeat = value }, label = { Text(value) }) }
+                }
                 OutlinedButton(
                     onClick = {
-                        val initial = Calendar.getInstance().apply { timeInMillis = dueAt ?: System.currentTimeMillis() + 3_600_000L }
+                        val initial = Calendar.getInstance().apply { timeInMillis = dueAt ?: suggestedDate ?: System.currentTimeMillis() + 3_600_000L }
                         DatePickerDialog(context, { _, year, month, day ->
                             val chosen = Calendar.getInstance().apply {
-                                timeInMillis = dueAt ?: System.currentTimeMillis() + 3_600_000L
+                                timeInMillis = dueAt ?: suggestedDate ?: System.currentTimeMillis() + 3_600_000L
                                 set(Calendar.YEAR, year); set(Calendar.MONTH, month); set(Calendar.DAY_OF_MONTH, day)
                             }
                             TimePickerDialog(context, { _, hour, minute ->
@@ -221,6 +230,7 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(dueAt?.let { "Reminder: " + SimpleDateFormat("EEE, dd MMM • hh:mm a", Locale.getDefault()).format(Date(it)) } ?: "Choose date and time *") }
                 OutlinedTextField(leadMinutes.toString(), { value -> leadMinutes = value.toIntOrNull()?.coerceIn(0, 10080) ?: 0 }, label = { Text("Notify before (minutes)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                if (timeNeedsConfirmation) Text("AM/PM was not clearly spoken. Use the date/time picker to verify the exact time.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Text("Recognized text and all reminder details must be checked before saving.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 Button(
                     enabled = title.isNotBlank() && dueAt != null && dueAt!! > System.currentTimeMillis() && !saving,
@@ -230,9 +240,11 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
                             try {
                                 val reminder = Reminder(
                                     title = title.trim(),
+                                    notes = notes.trim(),
                                     category = category,
                                     priority = priority,
                                     dueAt = dueAt!!,
+                                    repeat = repeat,
                                     notificationLeadMinutes = leadMinutes
                                 )
                                 val id = dao.insert(reminder)
@@ -248,7 +260,7 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) { Text(if (saving) "Saving…" else "Confirm and save") }
-                OutlinedButton(onClick = { showConfirmation = false; spokenText = ""; title = ""; dueAt = null }, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                OutlinedButton(onClick = { showConfirmation = false; spokenText = ""; title = ""; notes = ""; dueAt = null; suggestedDate = null }, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
             }
             if (!showConfirmation) {
                 OutlinedButton(onClick = { showConfirmation = true }, modifier = Modifier.fillMaxWidth()) {
@@ -262,47 +274,3 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
     }
 }
 
-private fun parseVoiceReminder(text: String, language: String): VoiceReminderDraft {
-    val lower = text.lowercase(Locale.ROOT)
-    val hindi = language.startsWith("hi")
-    var due: Long? = null
-    val calendar = Calendar.getInstance()
-    when {
-        lower.contains("day after tomorrow") || lower.contains("परसों") -> calendar.add(Calendar.DAY_OF_YEAR, 2)
-        lower.contains("tomorrow") || lower.contains("कल") -> calendar.add(Calendar.DAY_OF_YEAR, 1)
-        lower.contains("today") || lower.contains("आज") -> Unit
-        else -> Unit
-    }
-    val timeRegex = Regex("""(?i)(\d{1,2})(?::(\d{2}))?\s*(am|pm)|(?:सुबह|प्रातः|दोपहर|शाम|रात)\s*(\d{1,2})(?::(\d{2}))?\s*बजे?""")
-    val match = timeRegex.find(text)
-    if (match != null) {
-        var hour = (match.groupValues[1].ifBlank { match.groupValues[4] }).toIntOrNull() ?: 9
-        val minute = (match.groupValues[2].ifBlank { match.groupValues[5] }).toIntOrNull() ?: 0
-        val marker = match.groupValues[3].lowercase()
-        if (marker == "pm" && hour < 12) hour += 12
-        if (marker == "am" && hour == 12) hour = 0
-        if (text.contains("शाम") || text.contains("रात") || text.contains("दोपहर")) if (hour in 1..11) hour += 12
-        if (text.contains("सुबह") && hour == 12) hour = 0
-        calendar.set(Calendar.HOUR_OF_DAY, hour.coerceIn(0, 23))
-        calendar.set(Calendar.MINUTE, minute.coerceIn(0, 59))
-        calendar.set(Calendar.SECOND, 0); calendar.set(Calendar.MILLISECOND, 0)
-        due = calendar.timeInMillis
-        if (due <= System.currentTimeMillis() && !lower.contains("today") && !lower.contains("आज") && !lower.contains("tomorrow") && !lower.contains("कल")) {
-            calendar.add(Calendar.DAY_OF_YEAR, 1); due = calendar.timeInMillis
-        }
-    }
-    val lead = Regex("""(?i)(\d{1,4})\s*(minutes?|mins?|मिनट)\s*(before|पहले)""").find(text)?.groupValues?.get(1)?.toIntOrNull() ?: 0
-    var title = text
-        .replace(Regex("""(?i)remind me to|remind me|please remind me to|add (a )?(work )?task to|create (a )?reminder to"""), "")
-        .replace(Regex("""(?i)tomorrow|day after tomorrow|today|at \d{1,2}(:\d{2})?\s*(am|pm)|\d{1,2}(:\d{2})?\s*(am|pm)|notify me \d+ minutes? before|\d+ minutes? before|high priority|medium priority|low priority"""), "")
-        .replace(Regex("""कल|परसों|आज|सुबह|दोपहर|शाम|रात|\d{1,2}(?::\d{2})?\s*बजे?|\d+ मिनट पहले|याद दिलाना|याद दिला देना|मुझे"""), "")
-        .trim(' ', ',', '.', '।')
-    if (title.isBlank()) title = text.trim()
-    val category = if (lower.contains("work") || lower.contains("office") || lower.contains("professional") || lower.contains("काम")) "Professional" else "Personal"
-    val priority = when {
-        lower.contains("high priority") || lower.contains("उच्च प्राथमिकता") -> "High"
-        lower.contains("low priority") || lower.contains("कम प्राथमिकता") -> "Low"
-        else -> "Medium"
-    }
-    return VoiceReminderDraft(text, title, category, priority, due, lead)
-}
