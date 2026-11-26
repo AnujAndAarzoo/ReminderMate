@@ -16,7 +16,7 @@ class VoiceReminderParserTest {
             "en-IN", fixedNow()
         )
         val due = Calendar.getInstance().apply { timeInMillis = result.dueAt!! }
-        assertEquals("CMS deployment report", result.title)
+        assertEquals("submit CMS deployment report", result.title)
         assertEquals("Professional", result.category)
         assertEquals("High", result.priority)
         assertEquals("Daily", result.repeat)
