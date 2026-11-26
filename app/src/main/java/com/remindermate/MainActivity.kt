@@ -126,6 +126,7 @@ fun ReminderScreen(vm: ReminderViewModel) {
         topBar = { TopAppBar(navigationIcon = { Surface(shape = androidx.compose.foundation.shape.CircleShape, color = MaterialTheme.colorScheme.primaryContainer) { Icon(Icons.Default.Alarm, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(9.dp).size(24.dp)) } }, title = { Column { Text("ReminderMate", style = MaterialTheme.typography.titleLarge); Text("A little more organised, every day", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant) } }, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)) },
         floatingActionButton = { Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SmallFloatingActionButton(onClick = { context.startActivity(android.content.Intent(context, VoiceAssistantActivity::class.java)) }, containerColor = MaterialTheme.colorScheme.secondaryContainer) { Icon(Icons.Default.Mic, "Add by voice") }
+            SmallFloatingActionButton(onClick = { context.startActivity(android.content.Intent(context, VoiceManageActivity::class.java)) }, containerColor = MaterialTheme.colorScheme.tertiaryContainer) { Icon(Icons.Default.Edit, "Manage by voice") }
             FloatingActionButton(onClick = { editing = null; showAdd = true }) { Icon(Icons.Default.Add, "Add activity") }
         } }
     ) { padding ->
