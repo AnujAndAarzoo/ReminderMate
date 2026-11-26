@@ -111,7 +111,7 @@ object VoiceReminderParser {
 
         val hindiPrefix = Regex("""(सुबह|प्रातः|दोपहर|शाम|रात)\s*(\d{1,2})(?::(\d{2}))?\s*(?:बजे)?""").find(text)
         val hindiSuffix = Regex("""(\d{1,2})(?::(\d{2}))?\s*(?:बजे)?\s*(सुबह|प्रातः|दोपहर|शाम|रात)""").find(text)
-            ?: Regex("""(\d{1,2})(?::(\d{2}))?\s*बजे""").find(text)
+            ?: Regex("""(\d{1,2})(?::(\d{2}))?\s*बजे(?:\s*(सुबह|प्रातः|दोपहर|शाम|रात))?""").find(text)
         val explicit = hindiPrefix ?: hindiSuffix
         if (explicit != null) {
             val isPrefix = hindiPrefix != null
