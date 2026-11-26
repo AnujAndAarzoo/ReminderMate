@@ -8,11 +8,14 @@ import android.os.Build
 import com.remindermate.data.Reminder
 
 object ReminderScheduler {
+    fun notificationTime(reminder: Reminder): Long =
+        if (reminder.snoozedUntil > System.currentTimeMillis()) reminder.snoozedUntil
+        else reminder.dueAt - reminder.notificationLeadMinutes.coerceAtLeast(0) * 60_000L
+
     fun schedule(context: Context, reminder: Reminder) {
         cancel(context, reminder.id)
         if (reminder.completed) return
-        val triggerAt = if (reminder.snoozedUntil > System.currentTimeMillis())
-            reminder.snoozedUntil else reminder.dueAt
+        val triggerAt = notificationTime(reminder)
         if (triggerAt <= System.currentTimeMillis()) return
 
         val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
