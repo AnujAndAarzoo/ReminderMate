@@ -230,7 +230,11 @@ private fun VoiceCreateScreen(activity: VoiceAssistantActivity) {
                         }, initial.get(Calendar.YEAR), initial.get(Calendar.MONTH), initial.get(Calendar.DAY_OF_MONTH)).show()
                     },
                     modifier = Modifier.fillMaxWidth()
-                ) { Text(dueAt?.let { "Reminder: " + SimpleDateFormat("EEE, dd MMM • hh:mm a", Locale.getDefault()).format(Date(it)) } ?: "Choose date and time *") }
+                ) { Text(
+                    dueAt?.let { "Reminder: " + SimpleDateFormat("EEE, dd MMM • hh:mm a", Locale.getDefault()).format(Date(it)) }
+                        ?: suggestedDate?.let { "Date captured: " + SimpleDateFormat("EEE, dd MMM", Locale.getDefault()).format(Date(it)) + " • Choose time *" }
+                        ?: "Choose date and time *"
+                ) }
                 OutlinedTextField(leadMinutes.toString(), { value -> leadMinutes = value.toIntOrNull()?.coerceIn(0, 10080) ?: 0 }, label = { Text("Notify before (minutes)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                 if (timeNeedsConfirmation) Text("AM/PM was not clearly spoken. Use the date/time picker to verify the exact time.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 Text("Recognized text and all reminder details must be checked before saving.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
