@@ -96,6 +96,7 @@ class ReminderViewModel(private val dao: ReminderDao, private val context: andro
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReminderScreen(vm: ReminderViewModel) {
+    val context = LocalContext.current
     val reminders by vm.reminders.collectAsState()
     var filter by remember { mutableStateOf("All") }
     var query by remember { mutableStateOf("") }
