@@ -127,6 +127,7 @@ fun ReminderScreen(vm: ReminderViewModel) {
         floatingActionButton = { Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             SmallFloatingActionButton(onClick = { context.startActivity(android.content.Intent(context, VoiceAssistantActivity::class.java)) }, containerColor = MaterialTheme.colorScheme.secondaryContainer) { Icon(Icons.Default.Mic, "Add by voice") }
             SmallFloatingActionButton(onClick = { context.startActivity(android.content.Intent(context, VoiceManageActivity::class.java)) }, containerColor = MaterialTheme.colorScheme.tertiaryContainer) { Icon(Icons.Default.Edit, "Manage by voice") }
+            SmallFloatingActionButton(onClick = { context.startActivity(android.content.Intent(context, VoiceQueryActivity::class.java)) }, containerColor = MaterialTheme.colorScheme.secondaryContainer) { Icon(Icons.Default.Mic, "Ask by voice") }
             FloatingActionButton(onClick = { editing = null; showAdd = true }) { Icon(Icons.Default.Add, "Add activity") }
         } }
     ) { padding ->
