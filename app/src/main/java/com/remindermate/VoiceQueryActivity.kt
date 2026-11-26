@@ -251,5 +251,5 @@ private fun classifyReminderQuery(raw: String): Pair<ReminderQuery, List<String>
         detailTerms.isNotEmpty() -> ReminderQuery.DETAIL
         else -> null
     }
-    return query to if (query == ReminderQuery.DETAIL) detailTerms else emptyList()
+    return query?.let { it to if (it == ReminderQuery.DETAIL) detailTerms else emptyList() }
 }
