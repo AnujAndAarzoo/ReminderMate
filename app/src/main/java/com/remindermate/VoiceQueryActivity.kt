@@ -242,11 +242,11 @@ private fun classifyReminderQuery(raw: String): Pair<ReminderQuery, List<String>
         "ke", "batao", "dikhao", "kab", "mera", "mujhe", "wala", "wali", "waale")
     val detailTerms = tokens.filterNot { it in stop }
     val query = when {
+        listOf("high priority", "priority", "उच्च प्राथमिकता", "हाई प्राथमिकता", "प्राथमिकता").any { text.contains(it) } -> ReminderQuery.HIGH_PRIORITY
         listOf("summary", "overview", "how many", "कितने", "कुल", "सारांश").any { text.contains(it) } -> ReminderQuery.SUMMARY
         listOf("overdue", "late", "missed", "ओवरड्यू", "बकाया", "छूटे").any { text.contains(it) } -> ReminderQuery.OVERDUE
         listOf("upcoming", "next", "आने वाले", "आगामी", "अगले").any { text.contains(it) } -> ReminderQuery.UPCOMING
         listOf("today", "आज", "आज के", "आज मेरे").any { text.contains(it) } -> ReminderQuery.TODAY
-        listOf("high priority", "priority", "उच्च प्राथमिकता", "हाई प्राथमिकता", "प्राथमिकता").any { text.contains(it) } -> ReminderQuery.HIGH_PRIORITY
         listOf("pending", "all tasks", "all reminders", "पेंडिंग", "लंबित", "सभी काम", "सारे काम").any { text.contains(it) } -> ReminderQuery.PENDING
         detailTerms.isNotEmpty() -> ReminderQuery.DETAIL
         else -> null
