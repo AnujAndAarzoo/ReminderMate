@@ -77,7 +77,7 @@ object VoiceReminderParser {
             .replace(Regex("""(?i)day after tomorrow|tomorrow|today|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b"""), " ")
             .replace(Regex("""(?i)\b(?:at\s*)?\d{1,2}(?::|\s)\d{2}\s*(?:a\.?m\.?|p\.?m\.?)?\b|\b\d{1,2}\s*(?:a\.?m\.?|p\.?m\.?)\b|\b\d{1,2}\s*o'?clock\b|\b\d{1,2}\s*बजे\b"""), " ")
             .replace(Regex("""(?i)\b(?:high|medium|low)\s+priority\b|\burgent\b|\b(?:personal|professional|work|office)\b|\b(?:notify|alert)\s+me\b|\b\d{1,4}\s*(?:minutes?|mins?)\s*(?:before)?\b|\b(?:every\s+day|daily|every\s+week|weekly|every\s+month|monthly)\b"""), " ")
-            .replace(Regex("""कल|परसों|आज|अगले दिन|सुबह|प्रातः|दोपहर|शाम|रात|हर दिन|रोज|प्रतिदिन|हर हफ्ते|साप्ताहिक|हर महीने|मासिक|उच्च प्राथमिकता|मध्यम प्राथमिकता|कम प्राथमिकता|प्रोफेशनल|ऑफिस|काम|व्यक्तिगत|\d+\s*मिनट\s*पहले|\d{1,2}(?::\d{2})?\s*बजे"""), " ")
+            .replace(Regex("""कल|परसों|आज|अगले दिन|सुबह|प्रातः|दोपहर|शाम|रात|हर दिन|रोज|प्रतिदिन|हर हफ्ते|साप्ताहिक|हर महीने|मासिक|उच्च प्राथमिकता|मध्यम प्राथमिकता|कम प्राथमिकता|प्रोफेशनल|ऑफिस|काम|व्यक्तिगत|मुझे|याद दिलाना|याद दिला देना|\d+\s*मिनट\s*पहले|\d{1,2}(?::\d{2})?\s*बजे"""), " ")
             .replace(Regex("""(?i)\b(?:on|by|at|in|for|and|with|category|priority|notify|before)\b"""), " ")
             .replace(Regex("""\s+"""), " ")
             .trim(' ', ',', '.', '।', '-', ':')
@@ -120,7 +120,7 @@ object VoiceReminderParser {
             if (hour !in 0..23 || minute !in 0..59) return null
             if (period in listOf("दोपहर", "शाम", "रात") && hour in 1..11) hour += 12
             if (period in listOf("सुबह", "प्रातः") && hour == 12) hour = 0
-            return ParsedTime(hour, minute, false)
+            return ParsedTime(hour, minute, !isPrefix && period.isBlank() && hour in 1..12)
         }
 
         val clock = Regex("""(?i)\b(?:at\s+)(\d{1,2})(?::|\s)(\d{2})\b|\b(\d{1,2}):(\d{2})\b""").find(text)
