@@ -31,6 +31,7 @@ import com.remindermate.data.*
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -99,7 +100,9 @@ fun ReminderScreen(vm: ReminderViewModel) {
     var query by remember { mutableStateOf("") }
     var editing by remember { mutableStateOf<Reminder?>(null) }
     var showAdd by remember { mutableStateOf(false) }
-    val now = System.currentTimeMillis()
+    var clockNow by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) { while (true) { clockNow = System.currentTimeMillis(); delay(1000L) } }
+    val now = clockNow
     val visible = reminders.filter { item ->
         val matches = item.title.contains(query, true) || item.notes.contains(query, true)
         val status = when (filter) {
@@ -156,32 +159,55 @@ fun ReminderScreen(vm: ReminderViewModel) {
             } else {
                 LazyColumn(contentPadding = PaddingValues(bottom = 90.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(visible, key = { it.id }) { item ->
+                        val notificationAt = if (item.snoozedUntil > now) item.snoozedUntil else item.dueAt
+                        val remaining = (notificationAt - now).coerceAtLeast(0L)
+                        val countdown = if (item.completed) "Completed" else if (remaining == 0L) "Notification time reached" else formatCountdown(remaining)
+                        val timerColor = when {
+                            item.completed -> MaterialTheme.colorScheme.tertiary
+                            remaining == 0L -> MaterialTheme.colorScheme.error
+                            remaining < 60L * 60_000L -> MaterialTheme.colorScheme.error
+                            remaining < 6L * 60L * 60_000L -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.primary
+                        }
                         Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(14.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Column(Modifier.weight(1f)) {
-                                        Text(item.title, style = MaterialTheme.typography.titleMedium)
-                                        Text("${item.category}  •  ${item.priority} PRIORITY", style = MaterialTheme.typography.labelLarge, color = when (item.priority) { "High" -> MaterialTheme.colorScheme.error; "Medium" -> MaterialTheme.colorScheme.tertiary; else -> MaterialTheme.colorScheme.secondary })
-                                    }
-                                    if (!item.completed) IconButton(onClick = { editing = item; showAdd = true }) { Icon(Icons.Default.Edit, "Edit") }
-                                    IconButton(onClick = { vm.remove(item) }) { Icon(Icons.Default.Delete, "Delete") }
-                                }
-                                Text(SimpleDateFormat("EEE, dd MMM yyyy • hh:mm a", Locale.getDefault()).format(Date(item.dueAt)), style = MaterialTheme.typography.bodySmall)
-                                if (item.notes.isNotBlank()) Text(item.notes, style = MaterialTheme.typography.bodyMedium)
-                                if (item.snoozedUntil > now) Text("Snoozed until " + SimpleDateFormat("dd MMM, hh:mm a", Locale.getDefault()).format(Date(item.snoozedUntil)), color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelMedium)
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    if (!item.completed) {
-                                        TextButton(onClick = { vm.complete(item) }) { Icon(Icons.Default.Done, null); Spacer(Modifier.width(4.dp)); Text("Mark done") }
-                                        var snoozeMenu by remember { mutableStateOf(false) }
-                                        Box {
-                                            TextButton(onClick = { snoozeMenu = true }) { Text("Snooze") }
-                                            DropdownMenu(expanded = snoozeMenu, onDismissRequest = { snoozeMenu = false }) {
-                                                listOf("5 min" to 5L, "10 min" to 10L, "15 min" to 15L, "30 min" to 30L, "1 hour" to 60L, "2 hours" to 120L, "Tomorrow" to 1440L, "2 days" to 2880L, "7 days" to 10080L).forEach { (label, minutes) ->
-                                                    DropdownMenuItem(text = { Text(label) }, onClick = { vm.snooze(item, minutes * 60_000L); snoozeMenu = false })
+                            Row(Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(item.title, style = MaterialTheme.typography.titleMedium)
+                                    Text("${item.category}  •  ${item.priority} PRIORITY", style = MaterialTheme.typography.labelLarge, color = when (item.priority) { "High" -> MaterialTheme.colorScheme.error; "Medium" -> MaterialTheme.colorScheme.tertiary; else -> MaterialTheme.colorScheme.secondary })
+                                    Spacer(Modifier.height(5.dp))
+                                    Text(SimpleDateFormat("EEE, dd MMM • hh:mm a", Locale.getDefault()).format(Date(item.dueAt)), style = MaterialTheme.typography.bodySmall)
+                                    if (item.snoozedUntil > now) Text("Snoozed", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelSmall)
+                                    if (item.notes.isNotBlank()) Text(item.notes, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (!item.completed) {
+                                            TextButton(onClick = { vm.complete(item) }) { Icon(Icons.Default.Done, null); Spacer(Modifier.width(4.dp)); Text("Done") }
+                                            var snoozeMenu by remember { mutableStateOf(false) }
+                                            Box {
+                                                TextButton(onClick = { snoozeMenu = true }) { Text("Snooze") }
+                                                DropdownMenu(expanded = snoozeMenu, onDismissRequest = { snoozeMenu = false }) {
+                                                    listOf("5 min" to 5L, "10 min" to 10L, "15 min" to 15L, "30 min" to 30L, "1 hour" to 60L, "2 hours" to 120L, "Tomorrow" to 1440L, "2 days" to 2880L, "7 days" to 10080L).forEach { (label, minutes) ->
+                                                        DropdownMenuItem(text = { Text(label) }, onClick = { vm.snooze(item, minutes * 60_000L); snoozeMenu = false })
+                                                    }
                                                 }
                                             }
-                                        }
-                                    } else Text("Completed", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelLarge)
+                                        } else Text("Completed", color = MaterialTheme.colorScheme.tertiary, style = MaterialTheme.typography.labelLarge)
+                                    }
+                                }
+                                Spacer(Modifier.width(8.dp))
+                                Surface(
+                                    color = timerColor.copy(alpha = 0.10f),
+                                    shape = MaterialTheme.shapes.large,
+                                    modifier = Modifier.widthIn(min = 104.dp, max = 132.dp)
+                                ) {
+                                    Column(Modifier.padding(horizontal = 8.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(Icons.Default.Alarm, contentDescription = "Time until notification", tint = timerColor)
+                                        Text(countdown, color = timerColor, style = MaterialTheme.typography.titleMedium, maxLines = 2, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                                        Text(if (item.completed) "Done" else if (remaining == 0L) "Alert due" else "until alert", color = timerColor, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                                Column {
+                                    if (!item.completed) IconButton(onClick = { editing = item; showAdd = true }) { Icon(Icons.Default.Edit, "Edit") }
+                                    IconButton(onClick = { vm.remove(item) }) { Icon(Icons.Default.Delete, "Delete") }
                                 }
                             }
                         }
@@ -193,6 +219,15 @@ fun ReminderScreen(vm: ReminderViewModel) {
     if (showAdd) AddReminderDialog(initial = editing, onDismiss = { showAdd = false; editing = null }, onSave = {
         vm.save(it); showAdd = false; editing = null
     })
+}
+
+private fun formatCountdown(milliseconds: Long): String {
+    val totalSeconds = milliseconds / 1000L
+    val days = totalSeconds / 86_400L
+    val hours = (totalSeconds % 86_400L) / 3_600L
+    val minutes = (totalSeconds % 3_600L) / 60L
+    val seconds = totalSeconds % 60L
+    return if (days > 0) "${days}d ${hours}h" else if (hours > 0) "${hours}h ${minutes}m" else if (minutes > 0) "${minutes}m ${seconds}s" else "${seconds}s"
 }
 
 private fun dayStart(time: Long): Long = Calendar.getInstance().apply { timeInMillis = time; set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
