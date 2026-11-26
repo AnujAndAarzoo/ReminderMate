@@ -14,6 +14,7 @@
         <activity android:name=".VoiceAssistantActivity" android:exported="false"/>
         <activity android:name=".VoiceManageActivity" android:exported="false"/>
         <activity android:name=".VoiceQueryActivity" android:exported="false"/>
+        <activity android:name=".VoiceNotificationActionActivity" android:exported="false"/>
         <activity android:name=".ReminderDetailActivity" android:exported="false"/>
         <activity android:name=".MainActivity" android:exported="true" android:launchMode="singleTop">
             <intent-filter>
