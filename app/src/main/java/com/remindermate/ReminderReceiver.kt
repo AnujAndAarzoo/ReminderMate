@@ -84,6 +84,12 @@ class ReminderReceiver : BroadcastReceiver() {
             return PendingIntent.getBroadcast(context, request, actionIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         }
+        val voiceIntent = Intent(context, VoiceNotificationActionActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra("reminder_id", id)
+        }
+        val voicePending = PendingIntent.getActivity(context, id.toInt() + 400000, voiceIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle("ReminderMate • $title")
@@ -99,6 +105,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setShowWhen(true)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setContentIntent(open)
+            .addAction(0, "Voice command", voicePending)
             .addAction(0, "Snooze 10 min", actionPending(ACTION_SNOOZE, id.toInt() + 100000, 10 * 60 * 1000L))
             .addAction(0, "Snooze 1 hour", actionPending(ACTION_SNOOZE, id.toInt() + 200000, 60 * 60 * 1000L))
             .addAction(0, "Mark done", actionPending(ACTION_DONE, id.toInt() + 300000))
