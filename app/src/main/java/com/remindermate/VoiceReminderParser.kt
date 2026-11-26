@@ -74,7 +74,7 @@ object VoiceReminderParser {
         if (noteMatch != null) title = title.removeRange(noteMatch.range)
         title = title
             .replace(Regex("""(?i)please\s+remind\s+me\s+to|remind\s+me\s+to|remind\s+me|please\s+remind\s+me|create\s+(?:a\s+)?reminder\s+to|add\s+(?:a\s+)?(?:work\s+)?task\s+to"""), " ")
-            .replace(Regex("""(?i)day after tomorrow|tomorrow|today|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b"""), " ")
+            .replace(Regex("""(?i)day after tomorrow|tomorrow|today|next\s+(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)|\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\b\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?\b|\b\d{1,2}(?:st|nd|rd|th)?\s+(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b|\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}\b"""), " ")
             .replace(Regex("""(?i)\b(?:at\s*)?\d{1,2}(?::|\s)\d{2}\s*(?:a\.?m\.?|p\.?m\.?)?\b|\b\d{1,2}\s*(?:a\.?m\.?|p\.?m\.?)\b|\b\d{1,2}\s*o'?clock\b|\b\d{1,2}\s*बजे\b"""), " ")
             .replace(Regex("""(?i)\b(?:high|medium|low)\s+priority\b|\burgent\b|\b(?:personal|professional|work|office)\b|\b(?:notify|alert)\s+me\b|\b\d{1,4}\s*(?:minutes?|mins?)\s*(?:before)?\b|\b(?:every\s+day|daily|every\s+week|weekly|every\s+month|monthly)\b"""), " ")
             .replace(Regex("""कल|परसों|आज|अगले दिन|सुबह|प्रातः|दोपहर|शाम|रात|हर दिन|रोज|प्रतिदिन|हर हफ्ते|साप्ताहिक|हर महीने|मासिक|उच्च प्राथमिकता|मध्यम प्राथमिकता|कम प्राथमिकता|प्रोफेशनल|ऑफिस|काम|व्यक्तिगत|मुझे|याद दिलाना|याद दिला देना|\d+\s*मिनट\s*पहले|\d{1,2}(?::\d{2})?\s*बजे"""), " ")
@@ -110,7 +110,8 @@ object VoiceReminderParser {
         }
 
         val hindiPrefix = Regex("""(सुबह|प्रातः|दोपहर|शाम|रात)\s*(\d{1,2})(?::(\d{2}))?\s*(?:बजे)?""").find(text)
-        val hindiSuffix = Regex("""(\d{1,2})(?::(\d{2}))?\s*बजे\s*(सुबह|प्रातः|दोपहर|शाम|रात)?""").find(text)
+        val hindiSuffix = Regex("""(\d{1,2})(?::(\d{2}))?\s*(?:बजे)?\s*(सुबह|प्रातः|दोपहर|शाम|रात)""").find(text)
+            ?: Regex("""(\d{1,2})(?::(\d{2}))?\s*बजे""").find(text)
         val explicit = hindiPrefix ?: hindiSuffix
         if (explicit != null) {
             val isPrefix = hindiPrefix != null
